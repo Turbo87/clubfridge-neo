@@ -22,7 +22,7 @@ tokio = { version = "=1.43.0", features = ["time"] }
 tracing = "=0.1.41"
 tracing-subscriber = "=0.3.19"
 ulid = "=1.1.4"
-vereinsflieger = "=0.6.0"
+vereinsflieger = "=0.7.0"
 
 [dev-dependencies]
 claims = "=0.8.0"

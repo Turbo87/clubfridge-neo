@@ -4550,9 +4550,9 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "vereinsflieger"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a647c5069f4f1f6f2f57e8e7d4b7ff58f65031fc956a7fef0c4df111496d49e"
+checksum = "085820b4de6bf18673d8fd8f1f9176fb8db0484f9c7f2ab61d7461a33fd03931"
 dependencies = [
  "html-escape",
  "md-5",
