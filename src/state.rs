@@ -158,6 +158,7 @@ pub enum Message {
     AddSale(database::Article),
     Pay,
     Cancel,
+    DecrementTimeout,
     HideSaleConfirmation,
     SalesSaved,
     SavingSalesFailed,

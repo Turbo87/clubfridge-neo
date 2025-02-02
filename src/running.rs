@@ -7,6 +7,7 @@ use rust_decimal::Decimal;
 use sqlx::types::Text;
 use sqlx::SqlitePool;
 use std::mem;
+use std::ops::Sub;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
@@ -23,6 +24,9 @@ const SYNC_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 /// the Vereinsflieger API.
 const SALES_INTERVAL: Duration = Duration::from_secs(10 * 60);
 
+/// The time after which the sale is automatically processed.
+const INTERACTION_TIMEOUT: jiff::SignedDuration = jiff::SignedDuration::from_secs(60);
+
 pub struct RunningClubFridge {
     pub pool: SqlitePool,
     pub vereinsflieger: Option<crate::vereinsflieger::Client>,
@@ -35,6 +39,7 @@ pub struct RunningClubFridge {
     pub user: Option<database::Member>,
     pub input: String,
     pub sales: Vec<Sale>,
+    pub interaction_timeout: Option<jiff::SignedDuration>,
     pub show_sale_confirmation: bool,
 }
 
@@ -53,6 +58,7 @@ impl RunningClubFridge {
             user: None,
             input: String::new(),
             sales: Vec::new(),
+            interaction_timeout: None,
             show_sale_confirmation: false,
         }
     }
@@ -66,6 +72,11 @@ impl RunningClubFridge {
         if self.vereinsflieger.is_some() {
             subscriptions.push(iced::time::every(SYNC_INTERVAL).map(|_| Message::LoadFromVF));
             subscriptions.push(iced::time::every(SALES_INTERVAL).map(|_| Message::UploadSalesToVF));
+        }
+
+        if self.interaction_timeout.is_some() {
+            subscriptions
+                .push(iced::time::every(Duration::from_secs(1)).map(|_| Message::DecrementTimeout));
         }
 
         Subscription::batch(subscriptions)
@@ -362,11 +373,28 @@ impl RunningClubFridge {
                         Some(item) => item.amount += 1,
                         None => sales.push(Sale { amount: 1, article }),
                     }
+
+                    self.interaction_timeout = Some(INTERACTION_TIMEOUT);
                 }
             }
             Message::SetUser(member) => {
                 info!("Setting user: {member:?}");
                 self.user = Some(member);
+                self.interaction_timeout = Some(INTERACTION_TIMEOUT);
+            }
+            Message::DecrementTimeout => {
+                if let Some(timeout) = &mut self.interaction_timeout {
+                    *timeout = timeout.sub(jiff::SignedDuration::from_secs(1));
+                    if timeout.is_zero() {
+                        info!("Interaction timeout reached");
+                        self.interaction_timeout = None;
+                        return Task::done(if self.sales.is_empty() {
+                            Message::Cancel
+                        } else {
+                            Message::Pay
+                        });
+                    }
+                }
             }
             Message::Pay => {
                 info!("Processing sale");
@@ -388,6 +416,8 @@ impl RunningClubFridge {
                         amount: item.amount as u32,
                     })
                     .collect();
+
+                self.interaction_timeout = None;
 
                 return Task::future(database::Sale::insert_all(pool, sales)).then(|result| {
                     match result {
@@ -418,6 +448,7 @@ impl RunningClubFridge {
                 info!("Cancelling sale");
                 self.user = None;
                 self.sales.clear();
+                self.interaction_timeout = None;
             }
             Message::HideSaleConfirmation => {
                 debug!("Hiding sale confirmation popup");

@@ -108,6 +108,42 @@ impl RunningClubFridge {
 
         let status_row = Row::with_capacity(2).push_maybe(update_available).push(sum);
 
+        let mut cancel_label = "Abbruch".to_string();
+        if let Some(timeout) = self.interaction_timeout {
+            let secs_remaining = timeout.as_secs();
+            if self.sales.is_empty() && secs_remaining < 15 {
+                cancel_label.push_str(&format!(" ({}s)", secs_remaining));
+            }
+        }
+        let cancel_button = button(
+            text(cancel_label)
+                .color(color!(0xffffff))
+                .size(36)
+                .align_x(Center),
+        )
+        .width(Fill)
+        .style(button::danger)
+        .padding([10, 20])
+        .on_press_maybe(self.user.as_ref().map(|_| Message::Cancel));
+
+        let mut pay_label = "Bezahlen".to_string();
+        if let Some(timeout) = self.interaction_timeout {
+            let secs_remaining = timeout.as_secs();
+            if !self.sales.is_empty() && secs_remaining < 15 {
+                pay_label.push_str(&format!(" ({}s)", secs_remaining));
+            }
+        }
+        let pay_button = button(
+            text(pay_label)
+                .color(color!(0xffffff))
+                .size(36)
+                .align_x(Center),
+        )
+        .width(Fill)
+        .style(button::success)
+        .padding([10, 20])
+        .on_press_maybe(self.user.as_ref().map(|_| Message::Pay));
+
         let content = column![
             title.size(36),
             scrollable(items(&self.sales))
@@ -115,29 +151,7 @@ impl RunningClubFridge {
                 .width(Fill)
                 .anchor_bottom(),
             status_row,
-            row![
-                button(
-                    text("Abbruch")
-                        .color(color!(0xffffff))
-                        .size(36)
-                        .align_x(Center)
-                )
-                .width(Fill)
-                .style(button::danger)
-                .padding([10, 20])
-                .on_press_maybe(self.user.as_ref().map(|_| Message::Cancel)),
-                button(
-                    text("Bezahlen")
-                        .color(color!(0xffffff))
-                        .size(36)
-                        .align_x(Center)
-                )
-                .width(Fill)
-                .style(button::success)
-                .padding([10, 20])
-                .on_press_maybe(self.user.as_ref().map(|_| Message::Pay)),
-            ]
-            .spacing(10),
+            row![cancel_button, pay_button].spacing(10),
         ]
         .spacing(10);
 
