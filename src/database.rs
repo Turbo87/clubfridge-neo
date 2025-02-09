@@ -2,7 +2,7 @@ use rust_decimal::Decimal;
 use secrecy::{ExposeSecret, SecretString};
 use sqlx::types::Text;
 use sqlx::{SqliteConnection, SqlitePool};
-use tracing::info;
+use tracing::{info, warn};
 use ulid::Ulid;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -119,7 +119,9 @@ impl Member {
 
         Self::delete_all(&mut transaction).await?;
         for member in members {
-            member.insert(&mut transaction).await?;
+            if let Err(error) = member.insert(&mut transaction).await {
+                warn!("Failed to insert member: {error}");
+            }
         }
 
         transaction.commit().await
@@ -233,7 +235,9 @@ impl Article {
 
         Self::delete_all(&mut transaction).await?;
         for article in articles {
-            article.insert(&mut transaction).await?;
+            if let Err(error) = article.insert(&mut transaction).await {
+                warn!("Failed to insert article: {error}");
+            }
         }
 
         transaction.commit().await
@@ -332,5 +336,71 @@ mod tests {
         check("055FDF2", Some("0005635570"));
         check("S2017, A2711, 20€", None);
         check("20 Euro", None);
+    }
+
+    #[tokio::test]
+    async fn test_duplicate_article_insertion() -> anyhow::Result<()> {
+        let article1 = Article {
+            id: "1".to_string(),
+            designation: "Test Artikel 1".to_string(),
+            barcode: "1".to_string(),
+            prices: vec![],
+        };
+
+        let article2 = Article {
+            id: "1".to_string(),
+            designation: "Test Artikel 2".to_string(),
+            barcode: "1".to_string(),
+            prices: vec![],
+        };
+
+        let articles = vec![article1, article2];
+
+        let pool = SqlitePool::connect(":memory:").await?;
+        sqlx::migrate!().run(&pool).await?;
+
+        Article::save_all(pool.clone(), articles).await?;
+
+        let (count,): (u32,) = sqlx::query_as("SELECT COUNT(*) FROM articles")
+            .fetch_one(&pool)
+            .await?;
+
+        assert_eq!(count, 1);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_duplicate_member_insertion() -> anyhow::Result<()> {
+        let member1 = Member {
+            id: "1".to_string(),
+            firstname: "John".to_string(),
+            lastname: "Doe".to_string(),
+            nickname: "".to_string(),
+            keycodes: vec!["0005635570".to_string()],
+        };
+
+        let member2 = Member {
+            id: "1".to_string(),
+            firstname: "Jane".to_string(),
+            lastname: "Doe".to_string(),
+            nickname: "".to_string(),
+            keycodes: vec!["0005635570".to_string()],
+        };
+
+        let members = vec![member1, member2];
+
+        let pool = SqlitePool::connect(":memory:").await?;
+        sqlx::migrate!().run(&pool).await?;
+
+        Member::save_all(pool.clone(), members).await?;
+
+        let (count,): (u32,) = sqlx::query_as("SELECT COUNT(*) FROM members")
+            .fetch_one(&pool)
+            .await?;
+
+        assert_eq!(count, 1);
+
+        Ok(())
     }
 }
