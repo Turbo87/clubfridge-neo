@@ -1,4 +1,5 @@
 mod database;
+mod logging;
 mod popup;
 mod running;
 mod setup;
@@ -10,7 +11,7 @@ mod vereinsflieger;
 use crate::state::{ClubFridge, Options};
 
 pub fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    logging::init()?;
 
     let options = <Options as clap::Parser>::parse();
 

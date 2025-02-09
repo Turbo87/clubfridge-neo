@@ -20,6 +20,7 @@ serde_json = "=1.0.138"
 sqlx = { version = "=0.8.3", features = ["runtime-tokio", "sqlite"] }
 tokio = { version = "=1.43.0", features = ["time"] }
 tracing = "=0.1.41"
+tracing-appender = "=0.2.3"
 tracing-subscriber = "=0.3.19"
 ulid = "=1.2.0"
 vereinsflieger = "=0.7.0"
