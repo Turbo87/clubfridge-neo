@@ -209,12 +209,18 @@ impl RunningClubFridge {
 
                     let users = users
                         .into_iter()
-                        .filter_map(|user| {
-                            database::Member::try_from(user)
-                                .inspect_err(|err| warn!("Found invalid user: {err}"))
-                                .ok()
+                        .flat_map(|user| {
+                            user.keymanagement
+                                .into_iter()
+                                .filter_map(database::Member::parse_keycode)
+                                .map(move |keycode| database::Member {
+                                    keycode,
+                                    id: user.member_id.clone(),
+                                    firstname: user.first_name.clone(),
+                                    lastname: user.last_name.clone(),
+                                    nickname: user.nickname.clone(),
+                                })
                         })
-                        .filter(|user| !user.keycodes.is_empty())
                         .collect::<Vec<_>>();
 
                     info!("Saving {} users with keycodes to database…", users.len());
@@ -349,7 +355,6 @@ impl RunningClubFridge {
                         result: Ok(Some(database::Article {
                             id: designations[n as usize].to_string(),
                             designation: designations[n as usize].to_string(),
-                            barcode: ulid.clone(),
                             prices: vec![{
                                 database::Price {
                                     valid_from: jiff::civil::Date::constant(2000, 1, 1),
@@ -363,11 +368,11 @@ impl RunningClubFridge {
                     Task::done(Message::FindMemberResult {
                         input: "1234567890".to_string(),
                         result: Ok(Some(database::Member {
+                            keycode: "1234567890".to_string(),
                             id: "11011".to_string(),
                             firstname: "Tobias".to_string(),
                             lastname: "Bieniek".to_string(),
                             nickname: "Turbo".to_string(),
-                            keycodes: vec!["1234567890".to_string()],
                         })),
                     })
                 };

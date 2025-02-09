@@ -45,40 +45,21 @@ impl Credentials {
 
 #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
 pub struct Member {
+    pub keycode: String,
     pub id: String,
     pub firstname: String,
     pub lastname: String,
     #[allow(dead_code)]
     pub nickname: String,
-    #[sqlx(json)]
-    pub keycodes: Vec<String>,
-}
-
-impl TryFrom<vereinsflieger::User> for Member {
-    type Error = anyhow::Error;
-
-    fn try_from(article: vereinsflieger::User) -> Result<Self, Self::Error> {
-        Ok(Self {
-            id: article.member_id,
-            firstname: article.first_name,
-            lastname: article.last_name,
-            nickname: article.nickname,
-            keycodes: article
-                .keymanagement
-                .into_iter()
-                .filter_map(Self::parse_keycode)
-                .collect(),
-        })
-    }
 }
 
 impl Member {
     pub async fn find_by_keycode(pool: SqlitePool, keycode: &str) -> sqlx::Result<Option<Self>> {
         sqlx::query_as(
             r#"
-            SELECT members.id, firstname, lastname, nickname, keycodes
-            FROM members, json_each(keycodes)
-            WHERE json_each.value = $1
+            SELECT keycode, id, firstname, lastname, nickname
+            FROM members
+            WHERE keycode = $1
             "#,
         )
         .bind(keycode)
@@ -94,21 +75,17 @@ impl Member {
     }
 
     async fn insert(&self, connection: &mut SqliteConnection) -> sqlx::Result<()> {
-        let keycodes = serde_json::to_string(&self.keycodes)
-            .map_err(Into::into)
-            .map_err(sqlx::Error::Encode)?;
-
         sqlx::query(
             r#"
-            INSERT INTO members (id, firstname, lastname, nickname, keycodes)
+            INSERT INTO members (keycode, id, firstname, lastname, nickname)
             VALUES ($1, $2, $3, $4, $5)
             "#,
         )
+        .bind(&self.keycode)
         .bind(&self.id)
         .bind(&self.firstname)
         .bind(&self.lastname)
         .bind(&self.nickname)
-        .bind(keycodes)
         .execute(connection)
         .await
         .map(|_| ())
@@ -131,7 +108,7 @@ impl Member {
     ///
     /// This function accepts both the 10-digit numeric format and the 7-digit
     /// hexadecimal format. It returns the 10-digit numeric format.
-    fn parse_keycode(key: vereinsflieger::Key) -> Option<String> {
+    pub fn parse_keycode(key: vereinsflieger::Key) -> Option<String> {
         let key = key.name;
         if key.len() == 10 && key.chars().all(|c| c.is_ascii_digit()) {
             Some(key)
@@ -148,7 +125,6 @@ impl Member {
 pub struct Article {
     pub id: String,
     pub designation: String,
-    pub barcode: String,
     #[sqlx(json)]
     pub prices: Vec<Price>,
 }
@@ -158,9 +134,8 @@ impl TryFrom<vereinsflieger::Article> for Article {
 
     fn try_from(article: vereinsflieger::Article) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: article.article_id.clone(),
+            id: article.article_id,
             designation: article.designation,
-            barcode: article.article_id,
             prices: article
                 .prices
                 .into_iter()
@@ -193,9 +168,9 @@ impl Article {
     pub async fn find_by_barcode(pool: SqlitePool, barcode: &str) -> sqlx::Result<Option<Self>> {
         sqlx::query_as(
             r#"
-            SELECT id, designation, barcode, prices
+            SELECT id, designation, prices
             FROM articles
-            WHERE lower(barcode) = lower($1)
+            WHERE lower(id) = lower($1)
             "#,
         )
         .bind(barcode)
@@ -217,13 +192,12 @@ impl Article {
 
         sqlx::query(
             r#"
-            INSERT INTO articles (id, designation, barcode, prices)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO articles (id, designation, prices)
+            VALUES ($1, $2, $3)
             "#,
         )
         .bind(&self.id)
         .bind(&self.designation)
-        .bind(&self.barcode)
         .bind(prices)
         .execute(connection)
         .await
@@ -343,14 +317,12 @@ mod tests {
         let article1 = Article {
             id: "1".to_string(),
             designation: "Test Artikel 1".to_string(),
-            barcode: "1".to_string(),
             prices: vec![],
         };
 
         let article2 = Article {
             id: "1".to_string(),
             designation: "Test Artikel 2".to_string(),
-            barcode: "1".to_string(),
             prices: vec![],
         };
 
@@ -373,19 +345,19 @@ mod tests {
     #[tokio::test]
     async fn test_duplicate_member_insertion() -> anyhow::Result<()> {
         let member1 = Member {
+            keycode: "0005635570".to_string(),
             id: "1".to_string(),
             firstname: "John".to_string(),
             lastname: "Doe".to_string(),
             nickname: "".to_string(),
-            keycodes: vec!["0005635570".to_string()],
         };
 
         let member2 = Member {
+            keycode: "0005635570".to_string(),
             id: "1".to_string(),
             firstname: "Jane".to_string(),
             lastname: "Doe".to_string(),
             nickname: "".to_string(),
-            keycodes: vec!["0005635570".to_string()],
         };
 
         let members = vec![member1, member2];
