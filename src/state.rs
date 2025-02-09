@@ -2,7 +2,7 @@ use crate::database;
 use crate::running::RunningClubFridge;
 use crate::setup::Setup;
 use crate::starting::StartingClubFridge;
-use iced::keyboard::Key;
+use iced::keyboard::{Key, Modifiers};
 use iced::{application, window, Subscription, Task};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
@@ -139,7 +139,7 @@ pub enum Message {
     SelfUpdateResult(Result<self_update::Status, Arc<anyhow::Error>>),
     LoadFromVF,
     UploadSalesToVF,
-    KeyPress(Key),
+    KeyPress(Key, Modifiers),
     FindMemberResult {
         input: String,
         result: Result<Option<database::Member>, Arc<sqlx::Error>>,

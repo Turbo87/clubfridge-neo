@@ -84,7 +84,7 @@ impl RunningClubFridge {
 
     pub fn subscription(&self) -> Subscription<Message> {
         let mut subscriptions = vec![
-            iced::keyboard::on_key_press(|key, _modifiers| Some(Message::KeyPress(key))),
+            iced::keyboard::on_key_press(|key, modifiers| Some(Message::KeyPress(key, modifiers))),
             iced::time::every(SELF_UPDATE_INTERVAL).map(|_| Message::SelfUpdate),
         ];
 
@@ -307,12 +307,17 @@ impl RunningClubFridge {
                     Task::none()
                 });
             }
-            Message::KeyPress(Key::Character(c)) => {
+            Message::KeyPress(Key::Character(c), modifiers) => {
+                let mut c = c.chars().next().unwrap();
+                if modifiers.shift() {
+                    c = c.to_ascii_uppercase();
+                }
+
                 debug!("Key pressed: {c:?}");
-                self.input.push_str(c.as_str());
+                self.input.push(c);
                 self.hide_popup();
             }
-            Message::KeyPress(Key::Named(Named::Enter)) => {
+            Message::KeyPress(Key::Named(Named::Enter), _) => {
                 debug!("Key pressed: Enter");
                 let input = mem::take(&mut self.input);
                 let pool = self.pool.clone();
@@ -334,7 +339,7 @@ impl RunningClubFridge {
                 };
             }
             #[cfg(debug_assertions)]
-            Message::KeyPress(Key::Named(Named::Control)) => {
+            Message::KeyPress(Key::Named(Named::Control), _) => {
                 use rust_decimal_macros::dec;
 
                 let task = if self.user.is_some() {
