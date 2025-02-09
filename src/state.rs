@@ -98,24 +98,9 @@ impl ClubFridge {
         }
 
         if let Message::StartupComplete(pool, vereinsflieger) = message {
-            let task = match &vereinsflieger {
-                Some(_) => Task::batch([
-                    Task::done(Message::LoadFromVF),
-                    Task::done(Message::UploadSalesToVF),
-                ]),
-                None => {
-                    info!("Running in offline mode, skipping Vereinsflieger sync");
-                    Task::none()
-                }
-            };
-
-            self.state = State::Running(RunningClubFridge::new(
-                pool,
-                vereinsflieger,
-                self.update_button,
-            ));
-
-            return Task::batch([Task::done(Message::SelfUpdate), task]);
+            let (cf, task) = RunningClubFridge::new(pool, vereinsflieger, self.update_button);
+            self.state = State::Running(cf);
+            return task;
         }
 
         if matches!(message, Message::Shutdown) {

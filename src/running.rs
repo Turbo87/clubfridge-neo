@@ -50,8 +50,23 @@ impl RunningClubFridge {
         pool: SqlitePool,
         vereinsflieger: Option<crate::vereinsflieger::Client>,
         update_button: bool,
-    ) -> Self {
-        Self {
+    ) -> (Self, Task<Message>) {
+        let (popup, popup_task) = Popup::new(format!(
+            "clubfridge-neo v{} gestartet",
+            env!("CARGO_PKG_VERSION")
+        ))
+        .with_timeout();
+
+        let mut tasks = vec![Task::done(Message::SelfUpdate), popup_task];
+
+        if vereinsflieger.is_some() {
+            tasks.push(Task::done(Message::LoadFromVF));
+            tasks.push(Task::done(Message::UploadSalesToVF));
+        } else {
+            info!("Running in offline mode, skipping Vereinsflieger sync");
+        }
+
+        let cf = Self {
             pool,
             vereinsflieger,
             upload_mutex: Default::default(),
@@ -61,8 +76,10 @@ impl RunningClubFridge {
             input: String::new(),
             sales: Vec::new(),
             interaction_timeout: None,
-            popup: None,
-        }
+            popup: Some(popup),
+        };
+
+        (cf, Task::batch(tasks))
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
