@@ -2024,9 +2024,9 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "jiff"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b779762234e98fe28e4843812530f4c9842f2d6c21dbb5954951e2a2a5a7a8e"
+checksum = "5c163c633eb184a4ad2a5e7a5dacf12a58c830d717a7963563d4eceb4ced079f"
 dependencies = [
  "jiff-static",
  "jiff-tzdb-platform",
@@ -2039,9 +2039,9 @@ dependencies = [
 
 [[package]]
 name = "jiff-static"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb9113258d1841edd669cfa4921cd01f2804fc37e1b9da79c664668ba276eb3a"
+checksum = "dbc3e0019b0f5f43038cf46471b1312136f29e36f54436c6042c8f155fec8789"
 dependencies = [
  "proc-macro2",
  "quote",
