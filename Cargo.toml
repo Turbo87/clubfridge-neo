@@ -18,7 +18,7 @@ self_update = { version = "=0.42.0", default-features = false, features = ["comp
 serde = { version = "=1.0.219", features = ["derive"] }
 serde_json = "=1.0.140"
 sqlx = { version = "=0.8.3", features = ["runtime-tokio", "sqlite"] }
-tokio = { version = "=1.44.0", features = ["time"] }
+tokio = { version = "=1.44.1", features = ["time"] }
 tracing = "=0.1.41"
 tracing-appender = "=0.2.3"
 tracing-subscriber = "=0.3.19"
@@ -27,7 +27,7 @@ vereinsflieger = "=0.8.0"
 
 [dev-dependencies]
 claims = "=0.8.0"
-tokio = { version = "=1.44.0", features = ["macros"] }
+tokio = { version = "=1.44.1", features = ["macros"] }
 
 [package.metadata.release]
 sign-commit = true
