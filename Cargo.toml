@@ -12,7 +12,7 @@ iced = { version = "=0.13.1", default-features = false, features = ["tokio", "wg
 jiff = { version = "=0.2.4", features = ["serde"] }
 reqwest = { version = "=0.12.15", default-features = false, features = ["rustls-tls"] }
 rust_decimal = "=1.37.1"
-rust_decimal_macros = "=1.37.0"
+rust_decimal_macros = "=1.37.1"
 secrecy = "=0.10.3"
 self_update = { version = "=0.42.0", default-features = false, features = ["compression-flate2", "rustls"] }
 serde = { version = "=1.0.219", features = ["derive"] }
