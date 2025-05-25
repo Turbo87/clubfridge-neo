@@ -17,7 +17,7 @@ secrecy = "=0.10.3"
 self_update = { version = "=0.42.0", default-features = false, features = ["compression-flate2", "rustls"] }
 serde = { version = "=1.0.219", features = ["derive"] }
 serde_json = "=1.0.140"
-sqlx = { version = "=0.8.5", features = ["runtime-tokio", "sqlite"] }
+sqlx = { version = "=0.8.6", features = ["runtime-tokio", "sqlite"] }
 tokio = { version = "=1.45.1", features = ["time"] }
 tracing = "=0.1.41"
 tracing-appender = "=0.2.3"
