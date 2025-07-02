@@ -182,7 +182,7 @@ impl Member {
             Some(key)
         } else if key.len() == 7 && key.chars().all(|c| c.is_ascii_hexdigit()) {
             let key = u32::from_str_radix(&key, 16).ok()?;
-            Some(format!("{:0>10}", key))
+            Some(format!("{key:0>10}"))
         } else {
             None
         }

@@ -125,7 +125,7 @@ impl RunningClubFridge {
         if let Some(timeout) = self.interaction_timeout {
             let secs_remaining = timeout.as_secs();
             if self.sales.is_empty() && secs_remaining < 15 {
-                cancel_label.push_str(&format!(" ({}s)", secs_remaining));
+                cancel_label.push_str(&format!(" ({secs_remaining}s)"));
             }
         }
         let cancel_button = button(
@@ -143,7 +143,7 @@ impl RunningClubFridge {
         if let Some(timeout) = self.interaction_timeout {
             let secs_remaining = timeout.as_secs();
             if !self.sales.is_empty() && secs_remaining < 15 {
-                pay_label.push_str(&format!(" ({}s)", secs_remaining));
+                pay_label.push_str(&format!(" ({secs_remaining}s)"));
             }
         }
         let pay_button = button(
@@ -189,7 +189,7 @@ fn sale_row(sale: &Sale) -> Element<Message> {
     let article_name = text(&sale.article.designation).size(24).width(Fill);
 
     let unit_price = sale.article.current_price().unwrap_or_default();
-    let unit_price = text(format!("{:.2}€", unit_price))
+    let unit_price = text(format!("{unit_price:.2}€"))
         .width(PRICE_WIDTH)
         .size(24)
         .color(color!(0x888888))
@@ -197,7 +197,7 @@ fn sale_row(sale: &Sale) -> Element<Message> {
         .wrapping(Wrapping::None);
 
     let total_price = sale.total();
-    let total_price = text(format!("{:.2}€", total_price))
+    let total_price = text(format!("{total_price:.2}€"))
         .width(PRICE_WIDTH)
         .size(24)
         .align_x(Right)
