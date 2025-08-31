@@ -19,7 +19,7 @@ sqlx = { version = "=0.8.6", features = ["runtime-tokio", "sqlite"] }
 tokio = { version = "=1.47.1", features = ["time"] }
 tracing = "=0.1.41"
 tracing-appender = "=0.2.3"
-tracing-subscriber = "=0.3.19"
+tracing-subscriber = "=0.3.20"
 ulid = "=1.2.1"
 vereinsflieger = "=0.8.0"
 
