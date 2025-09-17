@@ -10,7 +10,7 @@ anyhow = "=1.0.99"
 clap = { version = "=4.5.47", features = ["derive"] }
 jiff = { version = "=0.2.15", features = ["serde"] }
 rust_decimal = "=1.38.0"
-rust_decimal_macros = "=1.37.1"
+rust_decimal_macros = "=1.38.0"
 secrecy = "=0.10.3"
 self_update = { version = "=0.42.0", default-features = false, features = ["compression-flate2", "rustls"] }
 serde = { version = "=1.0.225", features = ["derive"] }
