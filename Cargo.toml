@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 anyhow = "=1.0.100"
-clap = { version = "=4.5.47", features = ["derive"] }
+clap = { version = "=4.5.48", features = ["derive"] }
 jiff = { version = "=0.2.15", features = ["serde"] }
 rust_decimal = "=1.38.0"
 rust_decimal_macros = "=1.38.0"
