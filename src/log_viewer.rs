@@ -1,12 +1,17 @@
 use crate::logging::{LOG_DIRECTORY, LOG_FILENAME_PREFIX, LOG_FILENAME_SUFFIX};
 use crate::state::Message;
 use iced::widget::text::Wrapping;
-use iced::widget::{button, column, container, row, scrollable, text, Column};
-use iced::{color, Center, Element, Fill, Font, Length, Task};
+use iced::widget::{button, column, container, rich_text, row, scrollable, span, text, Column};
+use iced::{color, Center, Color, Element, Fill, Font, Length, Task};
 use std::borrow::Cow;
 use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+const ERROR_LOG_LINE_COLOR: Color = color!(0xFF5555);
+const WARN_LOG_LINE_COLOR: Color = color!(0xD5A30F);
+const DEBUG_LOG_LINE_COLOR: Color = color!(0x7AA2C8);
+const TRACE_LOG_LINE_COLOR: Color = color!(0x888888);
 
 /// A validated directory entry name for an application log file.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +63,23 @@ impl LogFileSelection {
             | Self::Loaded { file_name, .. }
             | Self::Failed { file_name, .. } => Some(file_name),
         }
+    }
+}
+
+fn log_line_color(line: &str) -> Option<Color> {
+    let mut fields = line.split_ascii_whitespace();
+    let timestamp = fields.next()?;
+
+    if timestamp.as_bytes().get(10) != Some(&b'T') {
+        return None;
+    }
+
+    match fields.next() {
+        Some("ERROR") => Some(ERROR_LOG_LINE_COLOR),
+        Some("WARN") => Some(WARN_LOG_LINE_COLOR),
+        Some("DEBUG") => Some(DEBUG_LOG_LINE_COLOR),
+        Some("TRACE") => Some(TRACE_LOG_LINE_COLOR),
+        _ => None,
     }
 }
 
@@ -221,7 +243,7 @@ impl LogViewer {
         .spacing(10)
         .align_y(Center);
 
-        let log_contents = text(self.log_file_contents_text())
+        let log_contents = rich_text(self.log_file_contents_spans())
             .font(Font::MONOSPACE)
             .size(14)
             .width(Fill)
@@ -300,6 +322,16 @@ impl LogViewer {
             LogFileSelection::Failed { error, .. } => {
                 Cow::Owned(format!("Logdatei konnte nicht gelesen werden: {error}"))
             }
+        }
+    }
+
+    fn log_file_contents_spans(&self) -> Vec<text::Span<'_, (), Font>> {
+        match &self.selection {
+            LogFileSelection::Loaded { contents, .. } if !contents.is_empty() => contents
+                .split_inclusive('\n')
+                .map(|line| span(line).color_maybe(log_line_color(line)))
+                .collect(),
+            _ => vec![span(self.log_file_contents_text())],
         }
     }
 }
@@ -423,6 +455,70 @@ mod tests {
         let file_name = LogFileName("clubfridge-neo.2026-07-21.log".to_string());
 
         assert_eq!(file_name.date_label(), "2026-07-21");
+    }
+
+    #[test]
+    fn colors_log_lines_by_the_compact_formatter_level() {
+        assert_eq!(
+            log_line_color("2026-07-21T12:00:00.001Z ERROR clubfridge_neo: failed"),
+            Some(ERROR_LOG_LINE_COLOR)
+        );
+        assert_eq!(
+            log_line_color("2026-07-21T12:00:00.001Z  WARN clubfridge_neo: warning"),
+            Some(WARN_LOG_LINE_COLOR)
+        );
+        assert_eq!(
+            log_line_color("2026-07-21T12:00:00.001Z  INFO clubfridge_neo: started"),
+            None
+        );
+        assert_eq!(
+            log_line_color("2026-07-21T12:00:00.001Z DEBUG clubfridge_neo: update"),
+            Some(DEBUG_LOG_LINE_COLOR)
+        );
+        assert_eq!(
+            log_line_color("2026-07-21T12:00:00.001Z TRACE clubfridge_neo: detail"),
+            Some(TRACE_LOG_LINE_COLOR)
+        );
+    }
+
+    #[test]
+    fn does_not_color_level_words_outside_the_compact_level_column() {
+        assert_eq!(
+            log_line_color("2026-07-21T12:00:00.001Z  INFO clubfridge_neo: ERROR was handled"),
+            None
+        );
+        assert_eq!(log_line_color("continuation ERROR from nested error"), None);
+        assert_eq!(log_line_color("continuation mentioning WARN"), None);
+    }
+
+    #[test]
+    fn creates_one_colored_span_for_each_log_line() {
+        let file_name = LogFileName("clubfridge-neo.2026-07-21.log".to_string());
+        let mut viewer = LogViewer::new(LogViewerGeneration::new(1));
+        viewer.apply_log_file_list(vec![file_name.clone()]);
+        viewer.apply_log_file_contents(
+            file_name,
+            Ok(concat!(
+                "2026-07-21T12:00:00.001Z ERROR clubfridge_neo: failed\n",
+                "2026-07-21T12:00:01.001Z  INFO clubfridge_neo: recovered"
+            )
+            .as_bytes()
+            .to_vec()),
+        );
+
+        let spans = viewer.log_file_contents_spans();
+
+        assert_eq!(spans.len(), 2);
+        assert_eq!(
+            spans[0].text,
+            "2026-07-21T12:00:00.001Z ERROR clubfridge_neo: failed\n"
+        );
+        assert_eq!(spans[0].color, Some(ERROR_LOG_LINE_COLOR));
+        assert_eq!(
+            spans[1].text,
+            "2026-07-21T12:00:01.001Z  INFO clubfridge_neo: recovered"
+        );
+        assert_eq!(spans[1].color, None);
     }
 
     #[test]
