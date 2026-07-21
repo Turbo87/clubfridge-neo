@@ -281,7 +281,7 @@ impl RunningClubFridge {
                 use rust_decimal_macros::dec;
 
                 let task = if self.user.is_some() {
-                    let ulid = Ulid::new();
+                    let ulid = Ulid::gen();
 
                     let timestamp = ulid.timestamp_ms();
 
@@ -384,7 +384,7 @@ impl RunningClubFridge {
                 let sales = mem::take(&mut self.sales)
                     .into_iter()
                     .map(|item| database::Sale {
-                        id: Text(Ulid::new()),
+                        id: Text(Ulid::gen()),
                         date: Text(date),
                         member_id: self
                             .user
