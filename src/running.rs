@@ -2,6 +2,8 @@ use crate::database;
 use crate::state::{GlobalState, Message};
 use iced::keyboard::key::Named;
 use iced::keyboard::Key;
+#[cfg(debug_assertions)]
+use iced::keyboard::Modifiers;
 use iced::{Subscription, Task};
 use rust_decimal::Decimal;
 use sqlx::types::Text;
@@ -23,6 +25,14 @@ const SALES_INTERVAL: Duration = Duration::from_secs(10 * 60);
 
 /// The time after which the sale is automatically processed.
 const INTERACTION_TIMEOUT: jiff::SignedDuration = jiff::SignedDuration::from_secs(60);
+
+#[cfg(debug_assertions)]
+fn is_fake_data_shortcut(key: &Key, modifiers: Modifiers) -> bool {
+    modifiers.control()
+        && !modifiers.alt()
+        && !modifiers.logo()
+        && matches!(key, Key::Character(character) if character.eq_ignore_ascii_case("f"))
+}
 
 pub struct RunningClubFridge {
     pub pool: SqlitePool,
@@ -63,13 +73,7 @@ impl RunningClubFridge {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        let mut subscriptions = vec![iced::keyboard::listen().filter_map(|event| {
-            if let iced::keyboard::Event::KeyPressed { key, modifiers, .. } = event {
-                Some(Message::KeyPress(key, modifiers))
-            } else {
-                None
-            }
-        })];
+        let mut subscriptions: Vec<Subscription<Message>> = Vec::new();
 
         if self.vereinsflieger.is_some() {
             subscriptions.push(iced::time::every(SYNC_INTERVAL).map(|_| Message::LoadFromVF));
@@ -82,6 +86,32 @@ impl RunningClubFridge {
         }
 
         Subscription::batch(subscriptions)
+    }
+}
+
+#[cfg(all(test, debug_assertions))]
+mod tests {
+    use super::*;
+    use iced::keyboard::Modifiers;
+
+    #[test]
+    fn recognizes_only_ctrl_f_as_the_fake_data_shortcut() {
+        assert!(is_fake_data_shortcut(
+            &Key::Character("f".into()),
+            Modifiers::CTRL
+        ));
+        assert!(is_fake_data_shortcut(
+            &Key::Character("F".into()),
+            Modifiers::CTRL | Modifiers::SHIFT
+        ));
+        assert!(!is_fake_data_shortcut(
+            &Key::Character("l".into()),
+            Modifiers::CTRL
+        ));
+        assert!(!is_fake_data_shortcut(
+            &Key::Named(Named::Control),
+            Modifiers::CTRL
+        ));
     }
 }
 
@@ -245,39 +275,8 @@ impl RunningClubFridge {
                     Task::none()
                 });
             }
-            Message::KeyPress(Key::Character(c), modifiers) => {
-                let mut c = c.chars().next().unwrap();
-                if modifiers.shift() {
-                    c = c.to_ascii_uppercase();
-                }
-
-                debug!("Key pressed: {c:?}");
-                self.input.push(c);
-                global_state.hide_popup();
-            }
-            Message::KeyPress(Key::Named(Named::Enter), _) => {
-                debug!("Key pressed: Enter");
-                let input = mem::take(&mut self.input);
-                let pool = self.pool.clone();
-
-                global_state.hide_popup();
-
-                return if self.user.is_some() {
-                    Task::future(async move {
-                        let result = database::Article::find_by_barcode(pool, &input).await;
-                        let result = result.map_err(Arc::new);
-                        Message::FindArticleResult { input, result }
-                    })
-                } else {
-                    Task::future(async move {
-                        let result = database::Member::find_by_keycode(pool, &input).await;
-                        let result = result.map_err(Arc::new);
-                        Message::FindMemberResult { input, result }
-                    })
-                };
-            }
             #[cfg(debug_assertions)]
-            Message::KeyPress(Key::Named(Named::Control), _) => {
+            Message::KeyPress(key, modifiers) if is_fake_data_shortcut(&key, modifiers) => {
                 use rust_decimal_macros::dec;
 
                 let task = if self.user.is_some() {
@@ -323,6 +322,37 @@ impl RunningClubFridge {
                 global_state.hide_popup();
 
                 return task;
+            }
+            Message::KeyPress(Key::Character(c), modifiers) => {
+                let mut c = c.chars().next().unwrap();
+                if modifiers.shift() {
+                    c = c.to_ascii_uppercase();
+                }
+
+                debug!("Key pressed: {c:?}");
+                self.input.push(c);
+                global_state.hide_popup();
+            }
+            Message::KeyPress(Key::Named(Named::Enter), _) => {
+                debug!("Key pressed: Enter");
+                let input = mem::take(&mut self.input);
+                let pool = self.pool.clone();
+
+                global_state.hide_popup();
+
+                return if self.user.is_some() {
+                    Task::future(async move {
+                        let result = database::Article::find_by_barcode(pool, &input).await;
+                        let result = result.map_err(Arc::new);
+                        Message::FindArticleResult { input, result }
+                    })
+                } else {
+                    Task::future(async move {
+                        let result = database::Member::find_by_keycode(pool, &input).await;
+                        let result = result.map_err(Arc::new);
+                        Message::FindMemberResult { input, result }
+                    })
+                };
             }
             Message::FindArticleResult { input, result } => match result {
                 Ok(Some(article)) => {
