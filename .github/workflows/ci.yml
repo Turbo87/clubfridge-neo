@@ -68,7 +68,7 @@ jobs:
           name: clubfridge-neo-${{ env.REF_NAME }}-${{ env.TARGET_ARCH }}.tar.gz
           path: clubfridge-neo-${{ env.REF_NAME }}-${{ env.TARGET_ARCH }}.tar.gz
 
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+      - uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: clubfridge-neo-${{ env.REF_NAME }}-${{ env.TARGET_ARCH }}.tar.gz
