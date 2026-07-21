@@ -397,7 +397,7 @@ mod tests {
         fn new() -> Self {
             let path = std::env::temp_dir().join(format!(
                 "clubfridge-neo-log-viewer-test-{}",
-                ulid::Ulid::new()
+                ulid::Ulid::generate()
             ));
             fs::create_dir(&path).unwrap();
             Self { path }
@@ -442,7 +442,7 @@ mod tests {
     async fn treats_a_missing_log_directory_as_an_empty_file_list() {
         let directory = std::env::temp_dir().join(format!(
             "clubfridge-neo-missing-log-viewer-test-{}",
-            ulid::Ulid::new()
+            ulid::Ulid::generate()
         ));
 
         let files = scan_log_files(directory).await.unwrap();
