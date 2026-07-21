@@ -24,6 +24,10 @@ impl ClubFridge {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        if let Some(log_viewer) = &self.global_state.log_viewer {
+            return log_viewer.view();
+        }
+
         let content = match &self.state {
             State::Starting(cf) => cf.view(),
             State::Setup(cf) => cf.view(),

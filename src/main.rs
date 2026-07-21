@@ -1,4 +1,5 @@
 mod database;
+mod log_viewer;
 mod logging;
 mod popup;
 mod running;

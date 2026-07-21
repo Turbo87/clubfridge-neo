@@ -5,6 +5,15 @@ use tracing_subscriber::Layer;
 
 const DEFAULT_TARGETS: &str = "warn,clubfridge_neo=debug";
 
+/// The process-relative directory that contains application log files.
+pub(crate) const LOG_DIRECTORY: &str = "logs";
+
+/// The filename prefix that identifies application log files.
+pub(crate) const LOG_FILENAME_PREFIX: &str = "clubfridge-neo.";
+
+/// The filename suffix that identifies application log files.
+pub(crate) const LOG_FILENAME_SUFFIX: &str = ".log";
+
 pub fn init() -> anyhow::Result<()> {
     let targets = targets_from_env();
 
@@ -14,10 +23,10 @@ pub fn init() -> anyhow::Result<()> {
 
     let file_appender = tracing_appender::rolling::Builder::new()
         .rotation(tracing_appender::rolling::Rotation::DAILY)
-        .filename_prefix("clubfridge-neo")
-        .filename_suffix("log")
+        .filename_prefix(LOG_FILENAME_PREFIX.trim_end_matches('.'))
+        .filename_suffix(LOG_FILENAME_SUFFIX.trim_start_matches('.'))
         .max_log_files(7)
-        .build("logs")?;
+        .build(LOG_DIRECTORY)?;
 
     let logfile_layer = tracing_subscriber::fmt::layer()
         .compact()
