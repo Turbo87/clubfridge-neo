@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow = "=1.0.104"
+anyhow = "=1.0.105"
 clap = { version = "=4.6.9", features = ["derive"] }
 jiff = { version = "=0.2.46", features = ["serde"] }
 rust_decimal = "=1.43.0"
